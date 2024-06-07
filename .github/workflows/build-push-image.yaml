@@ -24,26 +24,30 @@ jobs:
         id: vars
         run: echo "sha_short=$(git rev-parse --short HEAD)" >> $GITHUB_ENV
         
-      - name: Build and push Docker image
+      - name: Build and push Frontend Docker image
         uses: docker/build-push-action@v4
         with:
-          context: app/
+          context: frontend/
           push: true
           tags: |
-            shrikantdandge7/kubesimplify-demo:latest
-            shrikantdandge7/kubesimplify-demo:sha-${{ env.sha_short }}
+            shrikantdandge7/frontend-wanderlust:latest
+            shrikantdandge7/frontend-wanderlust:sha-${{ env.sha_short }}
+          labels: |
+            org.opencontainers.image.source=${{ github.repository }}
+            org.opencontainers.image.revision=${{ github.sha }}
+
+      - name: Build and push Backend Docker image
+        uses: docker/build-push-action@v4
+        with:
+          context: backend/
+          push: true
+          tags: |
+            shrikantdandge7/backend-wanderlust:latest
+            shrikantdandge7/backend-wanderlust:sha-${{ env.sha_short }}
           labels: |
             org.opencontainers.image.source=${{ github.repository }}
             org.opencontainers.image.revision=${{ github.sha }}
           
-      - name: Generate deploy manifest from Jinja template
-        uses: cuchi/jinja2-action@v1.1.0
-        with: 
-          template: app/tmpl/deploy.j2
-          output_file: app/deploy/deploy.yaml
-          strict: true
-          variables: |
-            image_deploy_tag=sha-${{ env.sha_short }}
             
       - name: Configure git for the action
         run: |
@@ -61,7 +65,7 @@ jobs:
 
       - name: Commit deploy manifest on local repo
         run: |
-          git add app/deploy/deploy.yaml
+          git add kubernetes/*
           git commit -s -m "[skip ci] Generate deployment manifests"
           
       - name: Push deploy manifests to remote repo
